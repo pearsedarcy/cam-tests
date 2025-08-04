@@ -1,8 +1,9 @@
-# Generated test scripts (created by tests.py)
+# Generated test scripts (created by generate_test_suite.py)
 test_video_capture.sh
 test_video_capture_parallel.sh
 monitor_metrics.sh
 summarize_results.py
+diagnose.sh
 
 # Test results and outputs
 results/

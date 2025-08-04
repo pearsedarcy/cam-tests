@@ -40,15 +40,17 @@ pip3 install pandas
 ```
 cam-tests/
 ├── README.md                    # This file
-├── tests.py                     # Test suite generator
+├── generate_test_suite.py       # Test suite generator
 ├── test_video_capture.sh        # Main test script
 ├── monitor_metrics.sh           # System monitoring helper
+├── diagnose.sh                  # System diagnostic tool
 ├── summarize_results.py         # Results analysis
 ├── parallel_tests.py            # Parallel testing version
 ├── output.py                    # HTML report generator
 └── results/                     # Test output directory
     ├── *.mp4                    # Captured video files
     ├── *.log                    # Performance logs
+    ├── *.error.log              # Error logs (if failures occur)
     └── summary_report.html      # HTML report (if generated)
 ```
 
@@ -57,19 +59,48 @@ cam-tests/
 ### 1. Generate Test Scripts
 ```bash
 # Run the generator to create test scripts
-python3 tests.py
+python3 generate_test_suite.py
 ```
 
-### 2. Run Basic Tests
+### 2. Diagnose Your Setup (Recommended First Step)
 ```bash
-# Make scripts executable (if needed)
-chmod +x test_video_capture.sh monitor_metrics.sh
+# Run comprehensive system diagnostics
+./diagnose.sh
+```
 
-# Run the test suite
+This will check:
+- Required dependencies (ffmpeg, v4l2-ctl, sysstat)
+- Video device detection and capabilities
+- User permissions
+- Basic capture functionality
+
+### 3. Fix Any Issues Found
+Common fixes based on diagnostic results:
+
+**Missing dependencies:**
+```bash
+sudo apt update
+sudo apt install ffmpeg v4l-utils sysstat
+```
+
+**Permission issues:**
+```bash
+sudo usermod -a -G video $USER
+# Logout and login again
+```
+
+**No devices detected:**
+- Check USB connections and try different ports
+- Check system logs: `dmesg | grep -i usb`
+- Ensure capture device is properly powered
+
+### 4. Run Tests
+```bash
+# Run the full test suite
 ./test_video_capture.sh
 ```
 
-### 3. Analyze Results
+### 5. Analyze Results
 ```bash
 # Generate summary report
 python3 summarize_results.py
@@ -128,17 +159,34 @@ Each test captures:
 - **File Size**: Output video file size
 - **Timestamps**: For temporal analysis
 
-## 📋 Output Files
+## � Test Results and Analysis
 
-### Video Files
-- **Naming**: `{device}_{format}_{encoder}_{timestamp}.mp4`
-- **Example**: `video0_mjpeg_v4l2m2m_20250804_143022.mp4`
+### Test Output Format
 
-### Log Files
-- **Format**: CSV with columns: `timestamp,cpu_percent,mem_used_mb,disk_write_kbps`
-- **Example**: `video0_mjpeg_v4l2m2m_20250804_143022.log`
+**Successful tests produce:**
+- Video file: `{device}_{format}_{encoder}_{timestamp}.mp4`
+- Performance log: `{device}_{format}_{encoder}_{timestamp}.log`
 
-### Summary Report
+**Failed tests produce:**
+- Error log: `{device}_{format}_{encoder}_{timestamp}.mp4.error.log`
+
+### Example Results
+
+```bash
+# After running tests
+ls results/
+video0_mjpeg_copy_20250804_143022.mp4      # Successful capture
+video0_mjpeg_copy_20250804_143022.log       # Performance metrics
+video0_yuyv_v4l2m2m_20250804_143045.mp4.error.log  # Failed capture
+```
+
+### Summary Analysis
+
+```bash
+python3 summarize_results.py
+```
+
+Example output:
 ```
                     test  avg_cpu_percent  max_mem_mb  avg_disk_kbps  video_size_mb
    video0_mjpeg_copy          15.2           1250           5420          125.4
@@ -180,33 +228,71 @@ DURATION=60  # 1-minute tests for stability testing
 
 ## 🛠️ Troubleshooting
 
-### Common Issues
+### Diagnostic Tool
+
+The included `diagnose.sh` script provides comprehensive system diagnostics:
+
+```bash
+./diagnose.sh
+```
+
+**What it checks:**
+- System information (OS, kernel, architecture)
+- Required dependencies installation
+- Video device detection and capabilities
+- User permissions (video group membership)
+- USB device enumeration
+- Basic capture functionality test
+
+### Common Issues and Solutions
 
 1. **No devices detected**
    ```bash
    # Check available devices
    v4l2-ctl --list-devices
    ls /dev/video*
+   
+   # Check USB connections
+   lsusb | grep -i video
+   dmesg | grep -i usb
    ```
 
 2. **Permission errors**
    ```bash
    # Add user to video group
    sudo usermod -a -G video $USER
-   # Logout and login again
+   # Logout and login again, or reboot
    ```
 
 3. **FFmpeg errors**
    ```bash
    # Test device capabilities
    ffmpeg -f v4l2 -list_formats all -i /dev/video0
+   
+   # Check supported resolutions
+   v4l2-ctl -d /dev/video0 --list-formats-ext
    ```
 
 4. **Missing dependencies**
    ```bash
-   # Check if tools are available
-   which ffmpeg v4l2-ctl iostat
+   # Install all required packages
+   sudo apt update
+   sudo apt install ffmpeg v4l-utils sysstat python3-pandas
    ```
+
+5. **Hardware encoding failures**
+   - Hardware H.264 encoding (`h264_v4l2m2m`) may not be available on all Pi models
+   - Script will automatically fall back to software encoding
+   - Check error logs in `results/*.error.log` files
+
+### Enhanced Error Handling
+
+The improved test suite includes:
+- **Dependency validation**: Checks for required tools before starting
+- **Device capability testing**: Verifies format support before capture attempts
+- **Timeout protection**: Prevents hung processes with automatic timeouts
+- **Detailed error logging**: Saves FFmpeg errors to `.error.log` files
+- **Graceful degradation**: Skips unsupported combinations instead of failing
 
 ### Hardware-Specific Notes
 
