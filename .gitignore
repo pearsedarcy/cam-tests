@@ -1,0 +1,48 @@
+# Generated test scripts (created by tests.py)
+test_video_capture.sh
+test_video_capture_parallel.sh
+monitor_metrics.sh
+summarize_results.py
+
+# Test results and outputs
+results/
+*.mp4
+*.log
+*.csv
+
+# HTML reports
+summary_report.html
+*.html
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environment
+.venv/
+venv/
+env/
+ENV/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+*.tmp
+*.temp
+
+# Logs
+*.log.*
+logs/
+
+# Temporary files
+tmp/
+temp/
